@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Genie — A Wizard of Journeys</title>
+<style>
+:root{
+  --ink:#171717; --muted:#77736d; --cream:#f7f3eb; --paper:#fffdf8;
+  --line:#ded8cc; --purple:#6c4cf1; --purple2:#8b72ff; --gold:#d9a441;
+  --green:#2f7d61; --shadow:0 18px 55px rgba(35,28,18,.10);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button{font:inherit}
+.app{min-height:100vh;display:flex;justify-content:center}
+.phone{width:min(100%,480px);min-height:100vh;background:var(--paper);box-shadow:var(--shadow);position:relative;overflow:hidden}
+.topbar{height:68px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(255,253,248,.94);backdrop-filter:blur(12px);z-index:10}
+.brand{font-weight:800;letter-spacing:-.03em}.brand span{color:var(--purple)}
+.small{font-size:12px;color:var(--muted)}
+.screen{display:none;padding:28px 22px 38px;animation:fade .28s ease}.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h1{font-size:42px;line-height:.98;letter-spacing:-.055em;margin:8px 0 16px}
+h2{font-size:27px;line-height:1.05;letter-spacing:-.04em;margin:8px 0 10px}
+h3{font-size:17px;margin:0 0 6px}
+p{line-height:1.55;color:#5f5b55;margin:8px 0}
+.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;font-weight:800;color:var(--purple)}
+.hero{padding-top:34px}
+.genie-orb{width:92px;height:92px;border-radius:50%;background:radial-gradient(circle at 32% 25%,#fff 0 8%,#c5b8ff 9% 18%,#7457f5 45%,#4326c5 100%);box-shadow:0 0 0 10px #eee9ff,0 16px 35px rgba(108,76,241,.25);margin:8px 0 30px}
+.cards{display:grid;gap:12px;margin-top:24px}
+.card{border:1px solid var(--line);border-radius:20px;padding:18px;background:#fff;cursor:pointer;transition:.2s;text-align:left}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(35,28,18,.07);border-color:#c7bdf0}
+.card.selected{border:2px solid var(--purple);padding:17px;background:#faf8ff}
+.card .icon{font-size:25px;margin-bottom:13px}
+.row{display:flex;gap:10px;align-items:center}.between{justify-content:space-between}
+.primary,.secondary{width:100%;border:0;border-radius:15px;padding:15px 18px;font-weight:750;cursor:pointer}
+.primary{background:var(--ink);color:#fff}.primary:hover{background:#302d29}
+.secondary{background:#f0ece4;color:var(--ink)}
+.button-row{display:flex;gap:10px;margin-top:22px}.button-row>*{flex:1}
+.option-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.option{border:1px solid var(--line);background:#fff;border-radius:16px;padding:14px;text-align:left;cursor:pointer;min-height:100px}
+.option.selected{border:2px solid var(--purple);padding:13px;background:#faf8ff}
+.option strong{display:block;margin:6px 0}.option span{font-size:12px;color:var(--muted);line-height:1.35;display:block}
+.persona-carousel{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:30px}
+.carousel-arrow{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:20px;line-height:1;cursor:pointer;flex-shrink:0;color:var(--ink)}
+.carousel-arrow:hover{border-color:var(--purple);color:var(--purple)}
+.persona-stage{flex:1;text-align:center;min-width:0}
+.persona-orb{width:130px;height:130px;border-radius:50%;margin:0 auto;box-shadow:0 0 0 10px #eee9ff,0 16px 34px rgba(0,0,0,.15);transition:background .3s ease}
+.persona-name{font-weight:800;font-size:19px;margin-top:16px;letter-spacing:-.02em}
+.persona-tag{font-size:12.5px;color:var(--muted);margin-top:4px;max-width:230px;margin-left:auto;margin-right:auto;line-height:1.4}
+.persona-dots{display:flex;justify-content:center;gap:7px;margin-top:20px}
+.persona-dots span{width:7px;height:7px;border-radius:50%;background:#ded8cc;cursor:pointer;display:inline-block;transition:.2s}
+.persona-dots span.active{background:var(--ink);width:18px;border-radius:4px}
+.progress{height:5px;background:#ebe6dc;border-radius:10px;overflow:hidden;margin:16px 0 24px}.progress i{display:block;height:100%;background:var(--purple);width:33%;transition:.3s}
+.camera{border-radius:24px;background:#191816;aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;margin-top:18px}
+video{width:100%;height:100%;object-fit:cover;display:none}.camera.live video{display:block}
+.camera img.preview{width:100%;height:100%;object-fit:cover;display:none;position:absolute;inset:0}
+.camera.has-photo img.preview{display:block}
+.camera .scan{position:absolute;inset:18%;border:2px solid rgba(255,255,255,.75);border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.17)}
+.camera .scan:after{content:"";position:absolute;left:8%;right:8%;top:50%;height:2px;background:#fff;box-shadow:0 0 15px #fff}
+.camera-label{color:#fff;text-align:center;position:absolute;bottom:18px;left:0;right:0;font-size:13px;z-index:2}
+.work-image{height:245px;border-radius:22px;margin-top:18px;position:relative;overflow:hidden;background:linear-gradient(135deg,#242042,#8b72ff 45%,#e8b978);display:flex;align-items:center;justify-content:center}
+.work-image img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.work-image.has-photo img{display:block}
+.work-image.has-photo .art{display:none}
+.art{width:70%;height:75%;border-radius:6px;background:linear-gradient(145deg,#e9cf9b 0 23%,#33285f 24% 48%,#d56c53 49% 70%,#243b35 71%);box-shadow:0 16px 30px rgba(0,0,0,.25);transform:rotate(-3deg)}
+.bubble{background:#f0ece4;border-radius:18px 18px 18px 4px;padding:14px 16px;margin:14px 20px 0 0;line-height:1.45}
+.userbubble{background:var(--purple);color:white;border-radius:18px 18px 4px 18px;padding:14px 16px;margin:14px 0 0 35px;line-height:1.45}
+.genie-dot{width:11px;height:11px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
+.genie-dot.speaking{animation:dotpulse .9s ease-in-out infinite}
+@keyframes dotpulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:.55}}
+.photo-msg{width:130px;height:130px;border-radius:16px;overflow:hidden;margin:14px 0 0 auto;display:block;box-shadow:0 10px 22px rgba(35,28,18,.15)}
+.photo-msg img{width:100%;height:100%;object-fit:cover;display:block}
+.scan-bubble{background:#f7f4ff}
+.scan-row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.scan-spinner{width:16px;height:16px;border-radius:50%;border:2px solid #d8d2f5;border-top-color:var(--purple);animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.match-bubble{background:#eafaf1;border:1px solid #bfe8cf}
+.match-row{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#1f6b3d}
+.match-check{width:20px;height:20px;border-radius:50%;background:#2f9d7d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.chat{margin-top:14px;min-height:220px}.composer{display:flex;gap:8px;margin-top:18px;position:sticky;bottom:10px}.composer input{flex:1;border:1px solid var(--line);border-radius:15px;padding:14px;background:#fff}.mic{width:48px;border:0;border-radius:15px;background:#eee9ff;cursor:pointer}
+.mode-toggle{display:flex;gap:8px;margin-top:14px}
+.mode-toggle button{flex:1;border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px;font-size:12px;font-weight:750;cursor:pointer}
+.mode-toggle button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.big-orb-wrap{display:none;flex-direction:column;align-items:center;gap:16px;padding:26px 10px 10px}
+.big-orb{width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 32% 25%,#fff 0 8%,#c5b8ff 9% 18%,#7457f5 45%,#4326c5 100%);box-shadow:0 0 0 12px #eee9ff,0 18px 40px rgba(108,76,241,.28);transition:transform .25s ease}
+.big-orb.speaking{animation:orbpulse 1.1s ease-in-out infinite}
+@keyframes orbpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.voice-caption{font-size:15px;text-align:center;color:var(--ink);min-height:50px;max-width:280px;line-height:1.5}
+#chat.voice-mode .big-orb-wrap{display:flex}
+#chat.voice-mode .bubble,#chat.voice-mode .userbubble,#chat.voice-mode .photo-msg{display:none}
+.voice{display:flex;align-items:center;gap:10px;background:#f7f4ff;border:1px solid #e3dcff;border-radius:15px;padding:10px 12px;margin-top:14px;font-size:12px}
+.voice b{color:var(--purple)}.toggle{margin-left:auto;width:42px;height:24px;border-radius:20px;background:#bbb;position:relative;cursor:pointer}.toggle.on{background:var(--purple)}.toggle:after{content:"";width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:.2s}.toggle.on:after{left:21px}
+.journey{border:1px solid var(--line);border-radius:18px;padding:15px;margin-top:10px;cursor:pointer;background:#fff}.journey.locked{opacity:.58}.journey .tag{font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--purple)}
+.stop{display:flex;gap:12px;margin:18px 0}.dot{width:28px;height:28px;border-radius:50%;background:#eee9ff;color:var(--purple);font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}.stop.active .dot{background:var(--purple);color:white}
+.back{border:0;background:none;padding:0;color:var(--muted);cursor:pointer;font-size:13px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:#171717;color:#fff;padding:12px 16px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:99;white-space:nowrap}.toast.show{opacity:1;transform:translateX(-50%)}
+.footer-note{font-size:11px;color:#9a948b;text-align:center;margin-top:28px}
+@media(min-width:600px){body{padding:22px}.phone{border-radius:28px;min-height:calc(100vh - 44px)}.topbar{border-radius:28px 28px 0 0}}
+</style>
+</head>
+<body>
+<div class="app"><main class="phone">
+<header class="topbar"><div class="brand">The <span>Genie</span></div><div class="small" id="modeLabel">A Wizard of Journeys</div></header>
+
+<section class="screen active" id="welcome">
+  <div class="hero">
+    <div class="genie-orb"></div>
+    <div class="eyebrow">Your personal museum guide</div>
+    <h1>Let the art<br>talk back.</h1>
+    <p>Open the app, pick who's guiding you, and take a photo of the first work in front of you.</p>
+  </div>
+  <button class="primary" style="margin-top:22px" onclick="go('genie')">Meet your Genie</button>
+  <div class="footer-note">No app to install · Your phone camera is the guide</div>
+</section>
+
+<section class="screen" id="genie">
+  <button class="back" onclick="go('welcome')">← Back</button>
+  <div style="margin-top:28px"><div class="eyebrow">Choose your guide</div><h2>Who do you want<br>in your ear?</h2><p>Pick a voice for this visit. You can change the vibe later.</p></div>
+  <div class="persona-carousel">
+    <button class="carousel-arrow" onclick="stepPersona(-1)" aria-label="Previous voice">‹</button>
+    <div class="persona-stage">
+      <div class="persona-orb" id="personaOrb"></div>
+      <div class="persona-name" id="personaName">Gossip</div>
+      <div class="persona-tag" id="personaTag">Secrets, drama and the story behind the story.</div>
+    </div>
+    <button class="carousel-arrow" onclick="stepPersona(1)" aria-label="Next voice">›</button>
+  </div>
+  <div class="persona-dots" id="personaDots"></div>
+  <div class="voice"><span>🔊 <b id="voicePersonality">Gossip voice</b> · natural delivery</span><div class="toggle on" id="voiceToggle" onclick="toggleVoice()"></div></div>
+  <button class="primary" style="margin-top:18px" onclick="go('explore')">Let's go</button>
+</section>
+
+<section class="screen" id="explore">
+  <button class="back" onclick="go('genie')">← Change guide</button>
+  <div class="hero" style="padding-top:20px">
+    <div class="eyebrow">One more thing</div>
+    <h2>How do you want<br>to explore?</h2>
+    <p>Your Genie is ready. Ask anything as you go, or follow a planned journey stop to stop.</p>
+    <div class="cards">
+      <button class="card" onclick="chooseExplore('ask')"><div class="icon">✦</div><h3>Ask anything</h3><p>Photograph any work and start a conversation. No QR codes. No fixed script.</p></button>
+      <button class="card" onclick="chooseExplore('journey')"><div class="icon">◌</div><h3>Take a journey</h3><p>Follow clues from stop to stop around a theme, with your Genie beside you.</p></button>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="camera">
+  <button class="back" onclick="go('explore')">← Change how you explore</button>
+  <div style="margin-top:25px"><div class="eyebrow" id="cameraEyebrow">Ask anything</div><h2 id="cameraTitle">Show me a work.</h2><p id="cameraText">Take a photo of a painting and I'll recognize it.</p></div>
+  <div class="camera" id="cameraBox"><img class="preview" id="cameraPreview" alt=""><div class="scan"></div><div class="camera-label" id="cameraHint">Tap "Take a photo" below</div></div>
+  <div class="button-row"><button class="secondary" onclick="document.getElementById('cameraInput').click()">Take a photo</button><button class="primary" onclick="recognize()">Recognize work</button></div>
+  <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display:none">
+  <div id="journeyClue" style="display:none;margin-top:16px"></div>
+  <p class="footer-note">Prototype mode: any photo is accepted and matched against a small demo set, not a real museum vision backend. The "Recognize work" button lets you skip the camera if none is available.</p>
+</section>
+
+<section class="screen" id="journeys">
+  <button class="back" onclick="go('explore')">← Back</button>
+  <div style="margin-top:25px"><div class="eyebrow">Take a journey</div><h2>Where should<br>we wander?</h2><p>Choose a theme. I'll give you clues, not directions.</p></div>
+  <div class="journey" onclick="startJourney('Magical')"><span class="tag">Ready to explore · 3 stops</span><h3 style="margin-top:8px">✨ Magical journey</h3><p>Works that reward wonder, surprise and looking twice.</p></div>
+  <div class="journey" onclick="startJourney('Educational')"><span class="tag">Ready to explore · 3 stops</span><h3 style="margin-top:8px">🎓 Educational journey</h3><p>Learn composition by finding diagonals, dominant colors and off-center subjects.</p></div>
+  <div class="journey locked"><span class="tag">On the roadmap</span><h3 style="margin-top:8px">🎨 Let's Paint</h3><p>Follow the art until the final stop: a sketch table.</p></div>
+  <div class="journey locked"><span class="tag">On the roadmap</span><h3 style="margin-top:8px">🍽 Culinary of Art</h3><p>Build a meal out of color, texture and appetite.</p></div>
+  <div class="journey locked"><span class="tag">On the roadmap</span><h3 style="margin-top:8px">💬 Comics</h3><p>Find the museum's funniest, strangest visual stories.</p></div>
+</section>
+
+<section class="screen" id="chat">
+  <button class="back" onclick="go('welcome')">← End visit</button>
+  <div class="row between" style="margin-top:14px">
+    <div><div class="eyebrow" id="workType">WORK RECOGNIZED</div><h2 id="workTitle" style="font-size:21px;margin:2px 0 0">The Dreamer</h2></div>
+    <button class="small" id="journeyCounter" style="border:0;background:#f7f4ff;color:var(--purple);font-weight:800;padding:6px 12px;border-radius:20px;cursor:pointer;display:none" onclick="toggleLeaderboard()"></button>
+  </div>
+  <div id="leaderboardPanel" style="display:none;margin-top:10px;background:#faf8ff;border:1px solid #e3dcff;border-radius:16px;padding:14px 16px">
+    <div class="eyebrow">Today's ranking (demo)</div>
+    <div id="leaderboardList" style="margin-top:8px;font-size:13px"></div>
+    <p class="small" style="margin:8px 0 0">Simulated for the prototype, a real build would compare live visitor scores.</p>
+  </div>
+  <div class="mode-toggle">
+    <button id="modeTextBtn" class="active" onclick="setChatMode('text')">💬 Text</button>
+    <button id="modeVoiceBtn" onclick="setChatMode('voice')">🎙️ Voice</button>
+  </div>
+  <div class="big-orb-wrap" id="bigOrbWrap">
+    <div class="big-orb" id="bigOrb"></div>
+    <div class="voice-caption" id="voiceCaption">Listening…</div>
+  </div>
+  <div class="chat" id="chatLog"></div>
+  <div class="voice"><span id="voiceStatus">🔊 Speaking · <span id="voiceStyleLabel">conversational</span></span><div class="toggle on" id="voiceToggle2" onclick="toggleVoice()"></div></div>
+  <div class="button-row" id="chatTakePhotoRow" style="display:none"><button class="primary" onclick="document.getElementById('cameraInput').click()">📷 Take a photo</button></div>
+  <div class="composer"><input id="question" placeholder="Ask me anything…" onkeydown="if(event.key==='Enter')ask()"><button class="mic" onclick="speakQuestion()">🎙️</button><button class="primary" style="width:52px;padding:0" onclick="ask()">➤</button></div>
+  <div class="button-row" id="nextJourneyRow" style="display:none"><button class="secondary" onclick="go('welcome')">Finish</button><button class="primary" onclick="nextStop()" id="nextStopBtn">Next stop →</button></div>
+</section>
+
+<section class="screen" id="finish">
+  <div style="padding-top:38px;text-align:center">
+    <div class="genie-orb" style="margin:0 auto 28px"></div>
+    <div class="eyebrow">Journey complete</div>
+    <h1>Three works.<br>One story.</h1>
+    <p id="finishText">You looked for patterns, found surprises, and let the museum tell you something back.</p>
+    <div style="text-align:left;background:#faf8ff;border:1px solid #e3dcff;border-radius:16px;padding:14px 16px;margin-top:18px">
+      <div class="eyebrow">Today's ranking (demo)</div>
+      <div id="finishLeaderboard" style="margin-top:8px;font-size:13px"></div>
+      <p class="small" id="finishRankSummary" style="margin:8px 0 0;font-weight:700;color:var(--purple)"></p>
+    </div>
+    <button class="primary" style="margin-top:20px" onclick="go('welcome')">Start another visit</button>
+  </div>
+</section>
+</main></div><div class="toast" id="toast"></div>
+
+<script>
+let exploreMode='ask', persona='Gossip', voiceOn=true, journey=null, stopIndex=0, currentPhotoUrl=null, score=0, quizzesAnswered=0, chatMode='text';
+const demoLeaderboard=[{name:'Noa',score:3},{name:'Ari',score:2},{name:'Mor',score:1}];
+const journeyIntros={
+  Magical:"Let's begin the magical journey. Three stops. Follow where I point, and don't rush.",
+  Educational:"Today we're learning composition. Three stops, each one teaches something."
+};
+const stops={
+  Magical:[
+    {clue:"Find a work that feels like stepping into a dream.",title:"The Dreamer",opening:"Okay, look at this. It feels less like a painting and more like someone left the door to their dream open.",quiz:{q:"Quick check: does this piece feel more like a dream, or a weather report?",options:["A dream","A weather report"],correct:0}},
+    {clue:"Now find something that makes you look twice, the stranger detail is the point.",title:"The Second Look",opening:"There. You saw it, right? The thing most people walk straight past. That's where this work gets interesting.",quiz:{q:"Did you spot the detail most people walk straight past?",options:["Yes, found it","Still looking"],correct:0}},
+    {clue:"For the final stop, find a work that makes an ordinary thing feel completely unfamiliar.",title:"The Familiar, Rewired",opening:"This is the magic trick: nothing here is really strange. The artist just taught your eyes to see it differently.",quiz:{q:"Does something ordinary feel unfamiliar here?",options:["Yes, totally","No, looks normal"],correct:0}}
+  ],
+  Educational:[
+    {clue:"Find a work built around one strong diagonal line.",title:"The Diagonal",opening:"First lesson: composition is basically the artist deciding where your eyes are allowed to travel. Follow that diagonal.",quiz:{q:"What kind of line is leading your eye through this piece?",options:["A diagonal","A perfect circle"],correct:0}},
+    {clue:"Find a work where one color clearly dominates the room.",title:"The Dominant Color",opening:"Color isn't decoration here. One color is doing the heavy lifting and quietly controlling the mood.",quiz:{q:"Is one color clearly dominating the piece?",options:["Yes, one color takes over","No, it's evenly balanced"],correct:0}},
+    {clue:"Find a work where the main subject refuses to sit in the middle.",title:"Off-Center",opening:"Last lesson: balance doesn't mean symmetry. Put the subject off-center and suddenly your brain has to work.",quiz:{q:"Where does the main subject sit in the frame?",options:["Dead center","Off to one side"],correct:1}}
+  ]
+};
+const askAnythingWorks=[
+  {title:"The Dreamer",opening:"Oh, I know this one. And honestly? The label is not the interesting part. Look at the way the figure seems to hover between waking and dreaming."},
+  {title:"Two Chairs and a Lemon",opening:"This one's quieter than it looks. Ask me why there are two chairs and only one lemon."},
+  {title:"Sea Wall at Dusk",opening:"Stand here a second longer than feels natural. The color is doing something the shapes aren't."},
+  {title:"The Long Corridor",opening:"Most people walk past this in four seconds. You've already beaten most people."}
+];
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0)}
+function chooseExplore(m){
+  exploreMode=m;
+  const s=document.getElementById('voiceStyleLabel');
+  if(s) s.textContent=(voiceProfiles[persona]||voiceProfiles.Gossip).style;
+  if(exploreMode==='journey')go('journeys');else {setCameraCopy();go('camera')}
+}
+const PERSONA_PREVIEWS = {
+  Gossip: "Okay, don't tell the security guard, but the artist actually painted this over a feud with their landlord.",
+  Kids: "Look right into the center! Doesn't that cloud look like a giant dragon eating a star?",
+  Executive: "Three takeaways: the 1912 shift, rejected by the salon, restored after 1945.",
+  Historian: "Observe the handling of light in the drapery, reflecting late tonalist influences.",
+  Vincent: "The yellow here is not just paint, it is the beating sun, the fever of living.",
+  Frida: "I paint my own reality. Notice the roots, pain is never separate from growth.",
+  Director: "A monumental acquisition, though quite scandalous for polite society back in '24.",
+  Collector: "Between us, this canvas went missing for forty years in a private Geneva vault."
+};
+const PERSONAS=[
+  {key:'Gossip',label:'Gossip',tagline:'Secrets, drama and the story behind the story.'},
+  {key:'Kids',label:"Kids' story",tagline:'Playful, curious and easy to follow.'},
+  {key:'Executive',label:'Executive summary',tagline:'The point, the idea, the one thing to notice.'},
+  {key:'Historian',label:'Art historian',tagline:'Context, technique and deeper connections.'},
+  {key:'Vincent',label:'Van Gogh',tagline:'Imagine the artist telling you himself.'},
+  {key:'Frida',label:'Frida Kahlo',tagline:'Personal, direct and unapologetically human.'},
+  {key:'Director',label:'1920s director',tagline:'Old-school museum elegance with a wink.'},
+  {key:'Collector',label:'Mystery collector',tagline:'Look closer. There is always a secret.'}
+];
+let personaIndex=0;
+function renderPersonaDots(){
+  document.getElementById('personaDots').innerHTML=PERSONAS.map((p,i)=>
+    '<span class="'+(i===personaIndex?'active':'')+'" onclick="selectPersonaIndex('+i+')"></span>'
+  ).join('');
+}
+function selectPersonaIndex(i,opts){
+  personaIndex=(i+PERSONAS.length)%PERSONAS.length;
+  const p=PERSONAS[personaIndex];
+  persona=p.key;
+  const color=PERSONA_COLORS[p.key]||'#6c4cf1';
+  document.getElementById('personaOrb').style.background='radial-gradient(circle at 32% 25%, #ffffff 0%, '+color+' 62%)';
+  document.getElementById('personaName').textContent=p.label;
+  document.getElementById('personaTag').textContent=p.tagline;
+  const label=document.getElementById('voicePersonality');
+  if(label) label.textContent=p.label+' voice';
+  renderPersonaDots();
+  if(!(opts&&opts.silent) && voiceOn) speak(PERSONA_PREVIEWS[p.key]||p.key);
+}
+function stepPersona(d){selectPersonaIndex(personaIndex+d)}
+function setCameraCopy(){document.getElementById('cameraEyebrow').textContent=exploreMode==='journey'?'Journey · Find the work':'Ask anything';document.getElementById('cameraTitle').textContent=exploreMode==='journey'?'Follow the clue.':'Show me a work.';document.getElementById('cameraText').textContent=exploreMode==='journey'?'Find the work from the clue below, then take a photo of it.':'Take a photo of a painting and I’ll recognize it.';resetCameraPreview()}
+function resetCameraPreview(){currentPhotoUrl=null;const box=document.getElementById('cameraBox');box.classList.remove('has-photo');document.getElementById('cameraHint').textContent='Tap "Take a photo" below'}
+function startJourney(name){
+  journey=name;stopIndex=0;score=0;quizzesAnswered=0;resetCameraPreview();
+  document.getElementById('chatLog').innerHTML='';
+  document.getElementById('question').value='';
+  document.getElementById('workTitle').textContent='Where should we start?';
+  document.getElementById('workType').textContent=name.toUpperCase()+' JOURNEY';
+  const counter=document.getElementById('journeyCounter');
+  counter.textContent='★ 0'; counter.style.display='inline-block';
+  document.getElementById('leaderboardPanel').style.display='none';
+  document.getElementById('nextJourneyRow').style.display='none';
+  document.getElementById('chatTakePhotoRow').style.display='flex';
+  go('chat');
+  addBot(journeyIntros[name]);
+  setTimeout(()=>addBot(stops[name][0].clue+' Take a photo when you find it.'),900);
+}
+
+const cameraInput=document.getElementById('cameraInput');
+cameraInput.addEventListener('change',function(){
+  const file=cameraInput.files&&cameraInput.files[0];
+  if(!file)return;
+  if(currentPhotoUrl)URL.revokeObjectURL(currentPhotoUrl);
+  currentPhotoUrl=URL.createObjectURL(file);
+  cameraInput.value='';
+  if(journey){
+    journeyPhotoTaken();
+  }else{
+    const box=document.getElementById('cameraBox');
+    document.getElementById('cameraPreview').src=currentPhotoUrl;
+    box.classList.add('has-photo');
+    document.getElementById('cameraHint').textContent='Got it, recognizing…';
+    setTimeout(recognize,700);
+  }
+});
+
+let lastAskIndex=-1;
+function pickAskWork(){
+  let i;
+  do{i=Math.floor(Math.random()*askAnythingWorks.length)}while(askAnythingWorks.length>1&&i===lastAskIndex);
+  lastAskIndex=i;
+  return askAnythingWorks[i];
+}
+function recognize(){
+  const w=pickAskWork();
+  document.getElementById('workTitle').textContent='Scanning…';
+  document.getElementById('workType').textContent='LOOKING';
+  document.getElementById('journeyCounter').style.display='none';
+  document.getElementById('leaderboardPanel').style.display='none';
+  document.getElementById('nextJourneyRow').style.display='none';
+  document.getElementById('chatTakePhotoRow').style.display='none';
+  document.getElementById('chatLog').innerHTML='';
+  document.getElementById('question').value='';
+  go('chat');
+  if(currentPhotoUrl)addPhotoBubble(currentPhotoUrl);
+  runRecognitionSequence(w.title,function(){
+    document.getElementById('workTitle').textContent=w.title;
+    document.getElementById('workType').textContent='WORK RECOGNIZED';
+    askWhatCaughtEye(function(){ addBot(w.opening); });
+  });
+}
+function journeyPhotoTaken(){
+  const st=stops[journey][stopIndex];
+  document.getElementById('workTitle').textContent='Scanning…';
+  document.getElementById('workType').textContent='STOP '+(stopIndex+1)+' · '+journey.toUpperCase();
+  document.getElementById('chatTakePhotoRow').style.display='none';
+  addPhotoBubble(currentPhotoUrl);
+  runRecognitionSequence(st.title,function(){
+    document.getElementById('workTitle').textContent=st.title;
+    askWhatCaughtEye(function(){
+      addBot(st.opening);
+      setTimeout(()=>offerQuiz(st.quiz),900);
+    });
+  });
+}
+function runRecognitionSequence(title,onDone){
+  const thread=document.getElementById('chatLog');
+  const scan=document.createElement('div');
+  scan.className='bubble scan-bubble';
+  scan.innerHTML='<div class="scan-row"><span class="scan-spinner"></span><span id="scanLabel">Scanning brushstrokes…</span></div>';
+  thread.appendChild(scan);
+  thread.scrollTop=thread.scrollHeight;
+  setTimeout(()=>{
+    const label=document.getElementById('scanLabel');
+    if(label) label.textContent='Matching against the collection…';
+  },650);
+  setTimeout(()=>{
+    scan.remove();
+    const match=document.createElement('div');
+    match.className='bubble match-bubble';
+    match.innerHTML='<div class="match-row"><span class="match-check">✓</span><span>Match found: <strong>'+title+'</strong></span></div>';
+    thread.appendChild(match);
+    thread.scrollTop=thread.scrollHeight;
+    setTimeout(onDone,550);
+  },1500);
+}
+let pendingEyeCatch=null;
+function askWhatCaughtEye(cb){
+  pendingEyeCatch=cb;
+  addBot("Before I tell you anything, what caught your eye first?");
+  addChoiceRow(["The colors","The shapes","Something else"],function(i){
+    answerEyeCatch(["The colors","The shapes","Something else"][i]);
+  });
+}
+function answerEyeCatch(text){
+  if(!pendingEyeCatch)return;
+  const cb=pendingEyeCatch;pendingEyeCatch=null;
+  addUser(text);
+  setTimeout(()=>{
+    addBot('"'+text+'"? Good eye. Let\'s start there.');
+    setTimeout(cb,600);
+  },350);
+}
+function addChoiceRow(labels,onPick){
+  const thread=document.getElementById('chatLog');
+  const opts=document.createElement('div');
+  opts.style.cssText='display:flex;gap:8px;margin:10px 20px 0 0;flex-wrap:wrap';
+  labels.forEach((label,i)=>{
+    const b=document.createElement('button');
+    b.className='secondary';
+    b.style.cssText='width:auto;flex:1;min-width:120px;padding:10px 12px;font-size:13px';
+    b.textContent=label;
+    b.onclick=function(){Array.from(opts.children).forEach(x=>x.disabled=true);onPick(i)};
+    opts.appendChild(b);
+  });
+  thread.appendChild(opts);
+  thread.scrollTop=thread.scrollHeight;
+}
+function offerQuiz(quiz){
+  addBot("Want to play a little game about this one?");
+  addChoiceRow(["Yes, let's play","No, skip it"],function(i){
+    addUser(i===0?"Yes, let's play":"No, skip it");
+    setTimeout(()=>{ i===0?askQuiz(quiz):readyForNext(); },350);
+  });
+}
+function askQuiz(quiz){
+  addBot(quiz.q);
+  addChoiceRow(quiz.options,function(i){
+    addUser(quiz.options[i]);
+    const correct=i===quiz.correct;
+    if(correct)score++;
+    quizzesAnswered++;
+    setTimeout(()=>{
+      addBot(correct?('Exactly. Point earned. Score: '+score+' / '+quizzesAnswered+'.'):('Close, but not quite. Score stays at '+score+' / '+quizzesAnswered+'.'));
+      document.getElementById('journeyCounter').textContent='★ '+score;
+      readyForNext();
+    },400);
+  });
+}
+function readyForNext(){
+  document.getElementById('nextStopBtn').textContent=stopIndex<2?'Next stop →':'Finish journey';
+  document.getElementById('nextJourneyRow').style.display='flex';
+}
+function personaStyle(){return {Gossip:'If I were gossiping about it',Kids:'If we were telling this as a story',Executive:'The short version is',Historian:'From an art-historical point of view',Vincent:'If I were speaking as Vincent',Frida:'If I were speaking as Frida',Director:'In the manner of an old museum director',Collector:'A collector would tell you this'}[persona]||'Here is the secret'}
+function setChatMode(m){
+  chatMode=m;
+  document.getElementById('chat').classList.toggle('voice-mode',m==='voice');
+  document.getElementById('modeTextBtn').classList.toggle('active',m==='text');
+  document.getElementById('modeVoiceBtn').classList.toggle('active',m==='voice');
+}
+function addBot(text){
+  const thread=document.getElementById('chatLog');
+  const el=document.createElement('div');
+  el.className='bubble';
+  const color=PERSONA_COLORS[persona]||'#6c4cf1';
+  el.innerHTML='<strong><span class="genie-dot" style="background:'+color+'"></span>The Genie · '+persona+'</strong><br>'+text;
+  thread.appendChild(el);
+  thread.scrollTop=thread.scrollHeight;
+  const caption=document.getElementById('voiceCaption');
+  if(caption) caption.textContent=text;
+  const bigOrb=document.getElementById('bigOrb');
+  if(voiceOn) speak(text, [el.querySelector('.genie-dot'), bigOrb]);
+  return el;
+}
+function addUser(text){const el=document.createElement('div');el.className='userbubble';el.textContent=text;document.getElementById('chatLog').appendChild(el);document.getElementById('chatLog').scrollTop=document.getElementById('chatLog').scrollHeight}
+function addPhotoBubble(url){
+  const thread=document.getElementById('chatLog');
+  const el=document.createElement('div');
+  el.className='photo-msg';
+  el.innerHTML='<img src="'+url+'" alt="Your photo">';
+  thread.appendChild(el);
+  thread.scrollTop=thread.scrollHeight;
+}
+function ask(){
+  const input=document.getElementById('question');
+  const q=input.value.trim();
+  if(!q)return;
+  input.value='';
+  if(pendingEyeCatch){ answerEyeCatch(q); return; }
+  addUser(q);
+  setTimeout(()=>{let a;if(/why|important|matter/i.test(q))a=personaStyle()+': this work gives you a small visual problem to solve. Notice what your eye sees first, then ask what made the artist put it there.';else if(/who|artist/i.test(q))a=personaStyle()+': the artist matters, but start with the work. Tell me what you notice and I’ll connect it to the person who made it.';else if(/color/i.test(q))a='Try this: ignore the subject for ten seconds. Which color survives when you stop naming what you see? That is doing more work than you think.';else a='Good question. There is no wrong one here. '+personaStyle()+': start by looking at the detail that made you ask it. I can take you deeper from there.';addBot(a)},350)
+}
+function nextStop(){
+  if(!journey)return;
+  document.getElementById('nextJourneyRow').style.display='none';
+  if(stopIndex<2){
+    stopIndex++;
+    resetCameraPreview();
+    document.getElementById('workTitle').textContent='On to the next stop';
+    document.getElementById('workType').textContent='STOP '+(stopIndex+1)+' · '+journey.toUpperCase();
+    document.getElementById('chatTakePhotoRow').style.display='flex';
+    addBot(stops[journey][stopIndex].clue+' Take a photo when you find it.');
+  }else{
+    const rank=quizzesAnswered===0?'Explorer':score===quizzesAnswered?'Art Detective':score>0?'Sharp Eye':'Curious Wanderer';
+    document.getElementById('finishText').textContent='You completed the '+journey.toLowerCase()+' journey with '+persona+' as your guide. Score: '+score+' / '+quizzesAnswered+' quiz points. Rank: '+rank+'.';
+    renderLeaderboard();
+    go('finish');
+  }
+}
+function toggleLeaderboard(){
+  const panel=document.getElementById('leaderboardPanel');
+  const showing=panel.style.display!=='none';
+  if(showing){panel.style.display='none';return}
+  const board=demoLeaderboard.concat([{name:'You',score:score,isYou:true}]).sort((a,b)=>b.score-a.score);
+  document.getElementById('leaderboardList').innerHTML=board.map((p,i)=>
+    '<div class="row between" style="padding:6px 0;'+(p.isYou?'font-weight:800;color:var(--purple)':'')+'"><span>'+(i+1)+'. '+p.name+'</span><span>'+p.score+' pts</span></div>'
+  ).join('');
+  panel.style.display='block';
+}
+function renderLeaderboard(){
+  const board=demoLeaderboard.concat([{name:'You',score,isYou:true}]).sort((a,b)=>b.score-a.score);
+  const myRank=board.findIndex(p=>p.isYou)+1;
+  document.getElementById('finishLeaderboard').innerHTML=board.map((p,i)=>
+    '<div class="row between" style="padding:6px 0;'+(p.isYou?'font-weight:800;color:var(--purple)':'')+'"><span>'+(i+1)+'. '+p.name+'</span><span>'+p.score+' pts</span></div>'
+  ).join('');
+  document.getElementById('finishRankSummary').textContent='You ranked #'+myRank+' of '+board.length+' today.';
+}
+function toggleVoice(){
+  voiceOn=!voiceOn;
+  document.querySelectorAll('.toggle').forEach(t=>t.classList.toggle('on',voiceOn));
+  const status=document.getElementById('voiceStatus');
+  if(status) status.innerHTML=voiceOn?'🔊 Speaking · <span id="voiceStyleLabel">conversational</span>':'🔇 Text only';
+  if(!voiceOn && 'speechSynthesis' in window) speechSynthesis.cancel();
+}
+let genieVoices = [];
+function loadGenieVoices(){
+  if(!('speechSynthesis' in window)) return;
+  genieVoices = speechSynthesis.getVoices();
+}
+if('speechSynthesis' in window){
+  loadGenieVoices();
+  speechSynthesis.onvoiceschanged = loadGenieVoices;
+}
+
+const voiceProfiles = {
+  Gossip:    {rate:1.02, pitch:1.15, volume:1, style:'witty, fast, conspiratorial'},
+  Kids:      {rate:.95,  pitch:1.30, volume:1, style:'playful, animated, warm'},
+  Executive: {rate:1.08, pitch:1.00, volume:1, style:'crisp, direct, efficient'},
+  Historian: {rate:.90,  pitch:.85,  volume:1, style:'measured, academic, authoritative'},
+  Vincent:   {rate:.98,  pitch:.95,  volume:1, style:'passionate, raw, emotionally driven'},
+  Frida:     {rate:.95,  pitch:1.10, volume:1, style:'intimate, unapologetic, vibrant'},
+  Director:  {rate:.85,  pitch:.90,  volume:1, style:'theatrical, aristocratic, formal'},
+  Collector: {rate:.90,  pitch:.75,  volume:1, style:'low, whispered, secretive'}
+};
+const PERSONA_COLORS = {
+  Gossip:'#e0507a', Kids:'#f4a627', Executive:'#2f9d7d', Historian:'#6b6b68',
+  Vincent:'#f2b705', Frida:'#d94f3d', Director:'#8b72ff', Collector:'#3b3b3b'
+};
+
+const NATURAL_VOICE_HINTS = ['natural','neural','premium','enhanced'];
+const GOOD_DEFAULT_VOICE_NAMES = ['samantha','google us english','aria','jenny','guy','ava','matthew','emma'];
+function voiceQualityScore(v){
+  const name = v.name.toLowerCase();
+  let score = 0;
+  if(NATURAL_VOICE_HINTS.some(h=>name.indexOf(h)!==-1)) score += 3;
+  if(GOOD_DEFAULT_VOICE_NAMES.some(h=>name.indexOf(h)!==-1)) score += 2;
+  return score;
+}
+function chooseVoice(profile){
+  if(!genieVoices.length) return null;
+  const female = /female|zira|samantha|karen|victoria|ava|aria|jenny|susan|emma/i;
+  const male = /male|david|daniel|mark|george|guy|ryan|alex|matthew/i;
+  let candidates = genieVoices.filter(v => /^en(-|_)/i.test(v.lang));
+  if(!candidates.length) candidates = genieVoices;
+  // Best-sounding voices first, so gender matching and the final fallback
+  // both land on a natural/enhanced voice over the flat robotic default.
+  candidates = candidates.slice().sort((a,b)=>voiceQualityScore(b)-voiceQualityScore(a));
+  if(persona==='Frida' || persona==='Kids' || persona==='Gossip'){
+    const v = candidates.find(v=>female.test(v.name));
+    if(v) return v;
+  }
+  if(persona==='Vincent' || persona==='Director'){
+    const v = candidates.find(v=>male.test(v.name));
+    if(v) return v;
+  }
+  return candidates[0] || null;
+}
+
+function naturalizeSpeech(text){
+  // Turn the written answer into something that sounds spoken.
+  return text
+    .replace(/\.\s+/g, '. <break> ')
+    .replace(/,\s+/g, ', ')
+    .replace(/:\s+/g, ': <break> ')
+    .replace(/\?\s+/g, '? <break> ')
+    .replace(/!\s+/g, '! <break> ');
+}
+
+// Speak one chunk at a time, waiting for each to actually finish before
+// starting the next with a short real pause, instead of queuing every
+// utterance at once (which the browser runs back to back with no gap and
+// reads as rushed, run-on speech).
+function speakChunks(chunks, p, voice, dots, index){
+  if(index >= chunks.length){
+    dots.forEach(d=>d.classList.remove('speaking'));
+    return;
+  }
+  const chunk = chunks[index];
+  const u = new SpeechSynthesisUtterance(chunk);
+  u.rate = p.rate;
+  u.pitch = p.pitch;
+  u.volume = p.volume;
+  if(voice) u.voice = voice;
+  if(index % 3 === 1) u.rate *= .96;
+  if(/[!?]/.test(chunk)) u.pitch *= 1.025;
+  if(index===0) dots.forEach(d=>d.classList.add('speaking'));
+  let started=false;
+  u.onstart=()=>{started=true};
+  const advance=()=>setTimeout(()=>speakChunks(chunks,p,voice,dots,index+1),280);
+  u.onend=advance;
+  u.onerror=function(e){console.error('speech error',e.error||e);advance()};
+  speechSynthesis.speak(u);
+  if(index===0){
+    setTimeout(()=>{
+      if(!started){
+        toast('No sound? Tap 🔊, or open this in a real browser tab (not an embedded preview).');
+        console.warn('speechSynthesis never fired onstart, likely blocked in this view');
+      }
+    },1200);
+  }
+}
+function speak(text, dotEls){
+  if(!voiceOn || !('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const p = voiceProfiles[persona] || voiceProfiles.Gossip;
+  const chunks = naturalizeSpeech(text).split('<break>').map(s=>s.trim()).filter(Boolean);
+  const voice = chooseVoice(p);
+  const dots = (Array.isArray(dotEls)?dotEls:[dotEls]).filter(Boolean);
+  speakChunks(chunks, p, voice, dots, 0);
+}
+function speakQuestion(){const q=document.getElementById('question');if('SpeechRecognition' in window||'webkitSpeechRecognition' in window){const R=window.SpeechRecognition||window.webkitSpeechRecognition;const r=new R();r.lang='en-US';r.onresult=e=>{q.value=e.results[0][0].transcript;ask()};r.start();toast('Listening…')}else toast('Voice input is not supported in this browser.')}
+function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');setTimeout(()=>x.classList.remove('show'),2200)}
+selectPersonaIndex(0,{silent:true});
+</script>
+</body></html>
