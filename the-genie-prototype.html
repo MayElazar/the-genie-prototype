@@ -111,12 +111,12 @@ video{width:100%;height:100%;object-fit:cover;display:none}.camera.live video{di
     <h1>Let the art<br>talk back.</h1>
     <p>Open the app, pick who's guiding you, and take a photo of the first work in front of you.</p>
   </div>
-  <button class="primary" style="margin-top:22px" onclick="go('explore')">Get started</button>
+  <button class="primary" style="margin-top:22px" onclick="go('genie')">Get started</button>
   <div class="footer-note">No app to install · Your phone camera is the guide</div>
 </section>
 
 <section class="screen" id="genie">
-  <button class="back" onclick="go('explore')">← Back</button>
+  <button class="back" onclick="go('welcome')">← Back</button>
   <div style="margin-top:28px"><div class="eyebrow">Choose your guide</div><h2>Choose your<br>tour guide</h2><p>Pick a voice for this visit. You can change the vibe later.</p></div>
   <div class="persona-carousel">
     <button class="carousel-arrow" onclick="stepPersona(-1)" aria-label="Previous voice">‹</button>
@@ -134,11 +134,11 @@ video{width:100%;height:100%;object-fit:cover;display:none}.camera.live video{di
 </section>
 
 <section class="screen" id="explore">
-  <button class="back" onclick="go('welcome')">← Back</button>
+  <button class="back" onclick="go('genie')">← Change guide</button>
   <div class="hero" style="padding-top:20px">
-    <div class="eyebrow">First, pick how</div>
+    <div class="eyebrow">One more thing</div>
     <h2>How do you want<br>to explore?</h2>
-    <p>Ask anything as you go, or follow a planned journey stop to stop. You'll pick your guide's voice next.</p>
+    <p>Ask anything as you go, or follow a planned journey stop to stop. Your guide is ready.</p>
     <div class="cards">
       <button class="card" onclick="chooseExplore('ask')"><div class="icon">✦</div><h3>Ask anything</h3><p>Photograph any work and start a conversation. No QR codes. No fixed script.</p></button>
       <button class="card" onclick="chooseExplore('journey')"><div class="icon">◌</div><h3>Take a journey</h3><p>Follow clues from stop to stop around a theme, with your Genie beside you.</p></button>
@@ -236,12 +236,12 @@ const askAnythingWorks=[
 function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0)}
 function chooseExplore(m){
   exploreMode=m;
-  go('genie');
+  startGuidedChat();
 }
 function confirmPersona(){
   const s=document.getElementById('voiceStyleLabel');
   if(s) s.textContent=(voiceProfiles[persona]||voiceProfiles.Gossip).style;
-  startGuidedChat();
+  go('explore');
 }
 function startGuidedChat(){
   if(exploreMode!=='journey') journey=null;
@@ -269,6 +269,17 @@ function offerJourneyChoice(){
     addUser(name+' journey');
     setTimeout(()=>startJourney(name),350);
   });
+  addLockedChoice("Quest & Riddles · coming soon","This one's on the roadmap: solve riddles at each stop, race the clock, and land on a leaderboard. Pick Magical or Educational for now.");
+}
+function addLockedChoice(label,note){
+  const thread=document.getElementById('chatLog');
+  const b=document.createElement('button');
+  b.className='secondary';
+  b.style.cssText='width:auto;display:block;margin:8px 20px 0 0;padding:10px 12px;font-size:13px;opacity:.55;text-align:left';
+  b.textContent=label;
+  b.onclick=function(){ toast(note); };
+  thread.appendChild(b);
+  thread.scrollTop=thread.scrollHeight;
 }
 const PERSONA_PREVIEWS = {
   Gossip: "Okay, don't tell the security guard, but the artist actually painted this over a feud with their landlord.",
