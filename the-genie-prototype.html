@@ -209,11 +209,12 @@ video{width:100%;height:100%;object-fit:cover;display:none}.camera.live video{di
 </main></div><div class="toast" id="toast"></div>
 
 <script>
-let exploreMode='ask', persona='Gossip', voiceOn=true, journey=null, stopIndex=0, currentPhotoUrl=null, score=0, quizzesAnswered=0, chatMode='text';
+let exploreMode='ask', persona='Gossip', voiceOn=true, journey=null, stopIndex=0, currentPhotoUrl=null, score=0, quizzesAnswered=0, chatMode='text', questStartTime=0;
 const demoLeaderboard=[{name:'Noa',score:3},{name:'Ari',score:2},{name:'Mor',score:1}];
 const journeyIntros={
   Magical:"Let's begin the magical journey. Three stops. Follow where I point, and don't rush.",
-  Educational:"Today we're learning composition. Three stops, each one teaches something."
+  Educational:"Today we're learning composition. Three stops, each one teaches something.",
+  Quest:"Three riddles, one running clock. I won't tell you where to go, just what to look for. Solve it, snap a photo, and I'll tell you how fast you were."
 };
 const stops={
   Magical:[
@@ -225,6 +226,11 @@ const stops={
     {clue:"Find a work built around one strong diagonal line.",title:"The Diagonal",opening:"First lesson: composition is basically the artist deciding where your eyes are allowed to travel. Follow that diagonal.",quiz:{q:"What kind of line is leading your eye through this piece?",options:["A diagonal","A perfect circle"],correct:0}},
     {clue:"Find a work where one color clearly dominates the room.",title:"The Dominant Color",opening:"Color isn't decoration here. One color is doing the heavy lifting and quietly controlling the mood.",quiz:{q:"Is one color clearly dominating the piece?",options:["Yes, one color takes over","No, it's evenly balanced"],correct:0}},
     {clue:"Find a work where the main subject refuses to sit in the middle.",title:"Off-Center",opening:"Last lesson: balance doesn't mean symmetry. Put the subject off-center and suddenly your brain has to work.",quiz:{q:"Where does the main subject sit in the frame?",options:["Dead center","Off to one side"],correct:1}}
+  ],
+  Quest:[
+    {clue:"Riddle one: two seats wait for guests who never came, but something small and yellow got there first. Find where the fruit outnumbers the chairs.",title:"Two Chairs and a Lemon",opening:"Solved. This one's quieter than it looks, ask me sometime why there's a lemon and no guest."},
+    {clue:"Riddle two: no walls, no roof, just the place where the sea gives up its color to the sky. Find where the day ends without a sound.",title:"Sea Wall at Dusk",opening:"Solved. The color's doing something here the shapes never could."},
+    {clue:"Riddle three: walk fast and you'll miss me entirely. No beginning, no end, just a long stretch that goes somewhere you can't see yet.",title:"The Long Corridor",opening:"Solved, and the last one too. Most people walk past this in four seconds flat."}
   ]
 };
 const askAnythingWorks=[
@@ -264,12 +270,11 @@ function startGuidedChat(){
   }
 }
 function offerJourneyChoice(){
-  addChoiceRow(["Magical journey","Educational journey"],function(i){
-    const name=i===0?'Magical':'Educational';
-    addUser(name+' journey');
+  addChoiceRow(["Magical journey","Educational journey","Quest & Riddles"],function(i){
+    const name=i===0?'Magical':i===1?'Educational':'Quest';
+    addUser(name==='Quest'?'Quest & Riddles':name+' journey');
     setTimeout(()=>startJourney(name),350);
   });
-  addLockedChoice("Quest & Riddles · coming soon","This one's on the roadmap: solve riddles at each stop, race the clock, and land on a leaderboard. Pick Magical or Educational for now.");
 }
 function addLockedChoice(label,note){
   const thread=document.getElementById('chatLog');
@@ -325,15 +330,22 @@ function selectPersonaIndex(i,opts){
 function stepPersona(d){selectPersonaIndex(personaIndex+d)}
 function setCameraCopy(){document.getElementById('cameraEyebrow').textContent=exploreMode==='journey'?'Journey · Find the work':'Ask anything';document.getElementById('cameraTitle').textContent=exploreMode==='journey'?'Follow the clue.':'Show me a work.';document.getElementById('cameraText').textContent=exploreMode==='journey'?'Find the work from the clue below, then take a photo of it.':'Take a photo of a painting and I’ll recognize it.';resetCameraPreview()}
 function resetCameraPreview(){currentPhotoUrl=null;const box=document.getElementById('cameraBox');box.classList.remove('has-photo');document.getElementById('cameraHint').textContent='Tap "Take a photo" below'}
+function cluePrompt(name){
+  return name==='Quest' ? ' Solve it, then take a photo of the piece, I\'m timing you.' : ' Take a photo when you find it.';
+}
+function startStopTimer(){ questStartTime=Date.now(); }
 function startJourney(name){
   journey=name;stopIndex=0;score=0;quizzesAnswered=0;resetCameraPreview();
   document.getElementById('workTitle').textContent='Where should we start?';
-  document.getElementById('workType').textContent=name.toUpperCase()+' JOURNEY';
+  document.getElementById('workType').textContent=name.toUpperCase()+(name==='Quest'?' RIDDLE 1':' JOURNEY');
   const counter=document.getElementById('journeyCounter');
   counter.textContent='★ 0'; counter.style.display='inline-block';
   document.getElementById('chatTakePhotoRow').style.display='flex';
   addBot(journeyIntros[name]);
-  setTimeout(()=>addBot(stops[name][0].clue+' Take a photo when you find it.'),900);
+  setTimeout(()=>{
+    addBot(stops[name][0].clue+cluePrompt(name));
+    if(name==='Quest') startStopTimer();
+  },900);
 }
 
 const cameraInput=document.getElementById('cameraInput');
@@ -382,16 +394,30 @@ function recognize(){
 function journeyPhotoTaken(){
   const st=stops[journey][stopIndex];
   document.getElementById('workTitle').textContent='Scanning…';
-  document.getElementById('workType').textContent='STOP '+(stopIndex+1)+' · '+journey.toUpperCase();
+  document.getElementById('workType').textContent=journey.toUpperCase()+(journey==='Quest'?' RIDDLE '+(stopIndex+1):' STOP '+(stopIndex+1));
   document.getElementById('chatTakePhotoRow').style.display='none';
   addPhotoBubble(currentPhotoUrl);
   runRecognitionSequence(st.title,function(){
     document.getElementById('workTitle').textContent=st.title;
-    askWhatCaughtEye(function(){
-      addBot(st.opening);
-      setTimeout(()=>offerQuiz(st.quiz),900);
-    });
+    if(journey==='Quest'){
+      scoreQuestStop(st);
+    }else{
+      askWhatCaughtEye(function(){
+        addBot(st.opening);
+        setTimeout(()=>offerQuiz(st.quiz),900);
+      });
+    }
   });
+}
+function scoreQuestStop(st){
+  const elapsed=questStartTime?Math.round((Date.now()-questStartTime)/1000):null;
+  const pts=elapsed===null?1:elapsed<15?3:elapsed<30?2:elapsed<60?1:0;
+  score+=pts;
+  quizzesAnswered++;
+  document.getElementById('journeyCounter').textContent='★ '+score;
+  const timeLine=elapsed===null?'Riddle solved.':('Solved in '+elapsed+' seconds.');
+  addBot(timeLine+' +'+pts+' point'+(pts===1?'':'s')+'.');
+  setTimeout(()=>{ addBot(st.opening); setTimeout(readyForNext,700); },500);
 }
 function runRecognitionSequence(title,onDone){
   const thread=document.getElementById('chatLog');
@@ -516,13 +542,21 @@ function nextStop(){
   if(stopIndex<2){
     stopIndex++;
     resetCameraPreview();
-    document.getElementById('workTitle').textContent='On to the next stop';
-    document.getElementById('workType').textContent='STOP '+(stopIndex+1)+' · '+journey.toUpperCase();
+    document.getElementById('workTitle').textContent='On to the next '+(journey==='Quest'?'riddle':'stop');
+    document.getElementById('workType').textContent=journey.toUpperCase()+(journey==='Quest'?' RIDDLE '+(stopIndex+1):' STOP '+(stopIndex+1));
     document.getElementById('chatTakePhotoRow').style.display='flex';
-    addBot(stops[journey][stopIndex].clue+' Take a photo when you find it.');
+    addBot(stops[journey][stopIndex].clue+cluePrompt(journey));
+    if(journey==='Quest') startStopTimer();
   }else{
-    const rank=quizzesAnswered===0?'Explorer':score===quizzesAnswered?'Art Detective':score>0?'Sharp Eye':'Curious Wanderer';
-    document.getElementById('finishText').textContent='You completed the '+journey.toLowerCase()+' journey with '+personaByKey(persona).name+' as your guide. Score: '+score+' / '+quizzesAnswered+' quiz points. Rank: '+rank+'.';
+    let rank;
+    if(journey==='Quest'){
+      const maxPts=stops.Quest.length*3;
+      rank=score>=maxPts?'Riddle Master':score>=maxPts*0.6?'Quick Wit':score>0?'Puzzle Solver':'Still Warming Up';
+    }else{
+      rank=quizzesAnswered===0?'Explorer':score===quizzesAnswered?'Art Detective':score>0?'Sharp Eye':'Curious Wanderer';
+    }
+    const scoreLine=journey==='Quest'?('Score: '+score+' / '+(stops.Quest.length*3)+' speed points.'):('Score: '+score+' / '+quizzesAnswered+' quiz points.');
+    document.getElementById('finishText').textContent='You completed the '+journey.toLowerCase()+' journey with '+personaByKey(persona).name+' as your guide. '+scoreLine+' Rank: '+rank+'.';
     renderLeaderboard();
     go('finish');
   }
