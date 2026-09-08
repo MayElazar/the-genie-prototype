@@ -237,6 +237,7 @@ svg.feather{display:inline-block;flex-shrink:0}
   <div class="camera" id="cameraBox" onclick="handleCameraTap()">
     <img class="preview" id="cameraPreview" alt="">
     <video class="ar-guide-video" id="arGuideVideo" loop playsinline></video>
+    <video class="ar-guide-video" id="arScanVideo" playsinline style="display:none"></video>
     <div class="ar-ground-glow" id="arGlow" style="display:none"></div>
     <div class="ar-arrow" id="arArrow" style="display:none"><div class="ar-arrow-inner"><svg viewBox="0 0 100 160" fill="none">
       <defs><linearGradient id="arGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffffff"/><stop offset="35%" stop-color="#b8a6ff"/><stop offset="100%" stop-color="#6c4cf1"/></linearGradient></defs>
@@ -534,6 +535,10 @@ function goARGuide(caption){
 
   const isFirstArrival=(exploreMode==='ask')||(!!journey && stopIndex===0);
   const hasRealArt=!!(journey && stops[journey][stopIndex] && stops[journey][stopIndex].img);
+  const scanVid=document.getElementById('arScanVideo');
+  scanVid.style.display='none';
+  scanVid.onended=null;
+  scanVid.pause();
   if(isFirstArrival){
     if(voiceOn && persona==='Gossip'){
       if('speechSynthesis' in window) speechSynthesis.cancel();
@@ -542,6 +547,11 @@ function goARGuide(caption){
     autoSequenceActive=true;
     vid.loop=false;
     document.getElementById('cameraHint').textContent='Walking to the piece…';
+    if(!hasRealArt){
+      scanVid.volume=0;
+      scanVid.src=MATCH_SCAN_VIDEO;
+      scanVid.load();
+    }
     vid.onended=()=>{
       cap.style.display='none';
       document.getElementById('cameraEyebrow').textContent='SCANNING';
@@ -556,9 +566,12 @@ function goARGuide(caption){
         document.getElementById('scanReticle').style.display='block';
         setTimeout(onArrivedAtFirstArt,1100);
       }else{
-        vid.onended=()=>{ vid.onended=null; onArrivedAtFirstArt(); };
-        vid.src=MATCH_SCAN_VIDEO;
-        vid.addEventListener('loadeddata',playWhenReady,{once:true});
+        vid.pause();
+        vid.style.display='none';
+        scanVid.onended=()=>{ scanVid.onended=null; onArrivedAtFirstArt(); };
+        scanVid.style.display='block';
+        scanVid.currentTime=0;
+        scanVid.play().catch(()=>{});
       }
     };
   }else{
@@ -697,6 +710,10 @@ function stopARGuideVideo(){
   vid.pause();
   vid.style.display='none';
   vid.loop=true;
+  const scanVid=document.getElementById('arScanVideo');
+  scanVid.onended=null;
+  scanVid.pause();
+  scanVid.style.display='none';
 }
 function startJourney(name){
   journey=name;stopIndex=0;score=0;quizzesAnswered=0;resetCameraPreview();
