@@ -447,11 +447,11 @@ function startGuidedChat(){
   const name=personaByKey(persona).name;
   if(exploreMode==='journey' && pendingJourneyName){
     document.getElementById('chatTakePhotoRow').style.display='flex';
-    addBot("I'm "+name+".");
+    addBot("I'm "+name+".", persona==='Gossip'?false:undefined);
     startJourney(pendingJourneyName);
   }else{
     document.getElementById('chatTakePhotoRow').style.display='flex';
-    addBot("I'm "+name+". Show me anything.");
+    addBot("I'm "+name+". Show me anything.", persona==='Gossip'?false:undefined);
     goARGuide("Find anything that catches your eye, point your camera and I'll take it from there.");
   }
 }
@@ -713,7 +713,7 @@ function startJourney(name){
   const counter=document.getElementById('journeyCounter');
   counter.textContent='★ 0'; counter.style.display='inline-block';
   document.getElementById('chatTakePhotoRow').style.display='flex';
-  addBot(journeyIntros[name]);
+  addBot(journeyIntros[name], persona==='Gossip'?false:undefined);
   goARGuide(stops[name][0].clue);
   if(name==='Quest') startStopTimer();
 }
@@ -872,7 +872,7 @@ function addBot(text, realAudioSrc){
     if(bigOrb) bigOrb.classList.add('speaking');
     a.onended=a.onerror=()=>{ if(dot) dot.classList.remove('speaking'); if(bigOrb) bigOrb.classList.remove('speaking'); };
     a.play().catch(()=>{ if(dot) dot.classList.remove('speaking'); if(bigOrb) bigOrb.classList.remove('speaking'); });
-  }else if(voiceOn){
+  }else if(voiceOn && realAudioSrc!==false){
     speak(text, [dot, bigOrb]);
   }
   return el;
