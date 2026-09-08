@@ -542,7 +542,12 @@ function goARGuide(caption){
       document.getElementById('cameraHint').textContent='Scanning…';
       if(hasRealArt){
         vid.pause();
-        setTimeout(onArrivedAtFirstArt,900);
+        vid.style.display='none';
+        const preview=document.getElementById('cameraPreview');
+        preview.src=stops[journey][stopIndex].img;
+        document.getElementById('cameraBox').classList.add('has-photo');
+        document.getElementById('scanReticle').style.display='block';
+        setTimeout(onArrivedAtFirstArt,1100);
       }else{
         vid.onended=()=>{ vid.onended=null; onArrivedAtFirstArt(); };
         vid.src=MATCH_SCAN_VIDEO;
