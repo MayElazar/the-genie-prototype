@@ -447,11 +447,7 @@ function startGuidedChat(){
   const name=personaByKey(persona).name;
   if(exploreMode==='journey' && pendingJourneyName){
     document.getElementById('chatTakePhotoRow').style.display='flex';
-    if(persona==='Gossip'){
-      addBot("Let's start. I'm "+name+", your guide in this journey. Follow the arrows to find the next artwork.", ADAM_AUDIO_INTRO);
-    }else{
-      addBot("I'm "+name+".");
-    }
+    addBot("I'm "+name+".");
     startJourney(pendingJourneyName);
   }else{
     document.getElementById('chatTakePhotoRow').style.display='flex';
@@ -539,6 +535,10 @@ function goARGuide(caption){
   const isFirstArrival=(exploreMode==='ask')||(!!journey && stopIndex===0);
   const hasRealArt=!!(journey && stops[journey][stopIndex] && stops[journey][stopIndex].img);
   if(isFirstArrival){
+    if(voiceOn && persona==='Gossip'){
+      if('speechSynthesis' in window) speechSynthesis.cancel();
+      new Audio(ADAM_AUDIO_INTRO).play().catch(()=>{});
+    }
     autoSequenceActive=true;
     vid.loop=false;
     document.getElementById('cameraHint').textContent='Walking to the piece…';
@@ -685,7 +685,10 @@ function exitArtistVideo(){
 }
 function chatFromArtistVideo(){
   stopArtistVideo();
-  continueFromPoints();
+  const fn=pointsPendingContinue;
+  pointsPendingContinue=null;
+  go('chat');
+  if(fn) setTimeout(fn,2000);
   setTimeout(()=>{ const q=document.getElementById('question'); if(q) q.focus(); },50);
 }
 function stopARGuideVideo(){
@@ -702,7 +705,7 @@ function startJourney(name){
   const counter=document.getElementById('journeyCounter');
   counter.textContent='★ 0'; counter.style.display='inline-block';
   document.getElementById('chatTakePhotoRow').style.display='flex';
-  if(persona!=='Gossip') addBot(journeyIntros[name]);
+  addBot(journeyIntros[name]);
   goARGuide(stops[name][0].clue);
   if(name==='Quest') startStopTimer();
 }
