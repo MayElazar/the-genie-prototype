@@ -537,8 +537,7 @@ function goARGuide(caption){
   const hasRealArt=!!(journey && stops[journey][stopIndex] && stops[journey][stopIndex].img);
   if(isFirstArrival){
     if(voiceOn && persona==='Gossip'){
-      if('speechSynthesis' in window) speechSynthesis.cancel();
-      new Audio(ADAM_AUDIO_INTRO).play().catch(()=>{});
+      playNarrationAudio(ADAM_AUDIO_INTRO, null, document.getElementById('bigOrb'));
     }
     autoSequenceActive=true;
     vid.loop=false;
@@ -853,6 +852,26 @@ function readyForNext(){
   document.getElementById('nextJourneyRow').style.display='flex';
 }
 function personaStyle(){return {Gossip:'If I were gossiping about it',Kids:'If we were telling this as a story',Executive:'The short version is',Historian:'From an art-historical point of view',Vincent:'If I were speaking as Vincent',Frida:'If I were speaking as Frida',Director:"As Reginald would put it",Collector:"Adrian's advice"}[persona]||'Here is the secret'}
+let currentNarrationAudio=null;
+function playNarrationAudio(src, dot, bigOrb){
+  if(currentNarrationAudio){ currentNarrationAudio.onended=null; currentNarrationAudio.onerror=null; currentNarrationAudio.pause(); }
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  const a=new Audio(src);
+  currentNarrationAudio=a;
+  if(dot) dot.classList.add('speaking');
+  if(bigOrb) bigOrb.classList.add('speaking');
+  a.onended=a.onerror=()=>{
+    if(dot) dot.classList.remove('speaking');
+    if(bigOrb) bigOrb.classList.remove('speaking');
+    if(currentNarrationAudio===a) currentNarrationAudio=null;
+  };
+  a.play().catch(()=>{
+    if(dot) dot.classList.remove('speaking');
+    if(bigOrb) bigOrb.classList.remove('speaking');
+    if(currentNarrationAudio===a) currentNarrationAudio=null;
+  });
+  return a;
+}
 function addBot(text, realAudioSrc){
   const thread=document.getElementById('chatLog');
   const el=document.createElement('div');
@@ -866,12 +885,7 @@ function addBot(text, realAudioSrc){
   const bigOrb=document.getElementById('bigOrb');
   const dot=el.querySelector('.genie-dot');
   if(voiceOn && realAudioSrc){
-    if('speechSynthesis' in window) speechSynthesis.cancel();
-    const a=new Audio(realAudioSrc);
-    if(dot) dot.classList.add('speaking');
-    if(bigOrb) bigOrb.classList.add('speaking');
-    a.onended=a.onerror=()=>{ if(dot) dot.classList.remove('speaking'); if(bigOrb) bigOrb.classList.remove('speaking'); };
-    a.play().catch(()=>{ if(dot) dot.classList.remove('speaking'); if(bigOrb) bigOrb.classList.remove('speaking'); });
+    playNarrationAudio(realAudioSrc, dot, bigOrb);
   }else if(voiceOn && realAudioSrc!==false){
     speak(text, [dot, bigOrb]);
   }
