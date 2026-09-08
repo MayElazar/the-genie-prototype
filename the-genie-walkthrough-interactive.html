@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Genie — Interactive Walkthrough</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<style>
+  :root{
+    --cream:#f7f3eb; --paper:#fffdf8; --ink:#171717; --muted:#77736d; --line:#ded8cc;
+    --purple:#6c4cf1; --purple2:#8b72ff; --purple-tint:#eee9ff;
+    --bg:var(--cream); --surface:var(--paper); --text:var(--ink); --text-muted:var(--muted); --border:var(--line);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#171420; --surface:#1f1a2b; --text:#f2ede2; --text-muted:#a89ec4; --border:#332c47;
+      --purple-tint:#2a2140;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#171420; --surface:#1f1a2b; --text:#f2ede2; --text-muted:#a89ec4; --border:#332c47;
+    --purple-tint:#2a2140;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}
+  h1,h2,h3{font-family:Fraunces,ui-serif,Georgia,serif;font-weight:500;letter-spacing:-.01em;margin:0}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+
+  .page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 16px}
+  .phone{
+    width:390px;max-width:100%;height:min(844px, 92vh);
+    background:#0c0a10;border-radius:44px;padding:12px;
+    box-shadow:0 30px 60px rgba(0,0,0,.35), 0 0 0 2px #000;
+    position:relative;display:flex;flex-direction:column;overflow:hidden;
+  }
+  .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:26px;background:#0c0a10;border-radius:14px;z-index:20}
+  .screen{flex:1;border-radius:34px;overflow:hidden;position:relative;background:#100d16;display:flex;flex-direction:column}
+  .ios-status{position:absolute;top:14px;left:0;right:0;z-index:25;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:13px;font-weight:600;color:#fff;pointer-events:none}
+  .ios-status .icons{display:flex;align-items:center;gap:4px}
+  .home-indicator{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:120px;height:4px;border-radius:3px;background:rgba(255,255,255,.75);z-index:25}
+
+  .stage{position:relative;flex:1;overflow:hidden}
+  .stage img, .stage video{width:100%;height:100%;object-fit:cover;display:block}
+  .stage-fade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,8,14,0) 40%,rgba(10,8,14,.88) 100%)}
+
+  .topbar{position:absolute;top:0;left:0;right:0;padding:44px 18px 10px;z-index:10;display:flex;align-items:center;justify-content:space-between}
+  .stopchip{background:rgba(12,10,16,.55);backdrop-filter:blur(6px);color:#fff;font-size:10.5px;letter-spacing:.08em;padding:6px 11px;border-radius:20px;border:1px solid rgba(255,255,255,.14)}
+  .stopchip b{color:#c9b8ff}
+  .progress{display:flex;gap:5px}
+  .progress span{width:16px;height:3px;border-radius:3px;background:rgba(255,255,255,.28)}
+  .progress span.active{background:#fff}
+  .progress span.done{background:#c9b8ff}
+
+  .caption{position:absolute;left:0;right:0;bottom:0;z-index:10;padding:18px 20px 22px;color:#fff}
+  .caption .tag{display:inline-block;font-size:9.5px;letter-spacing:.09em;padding:4px 9px;border-radius:20px;background:rgba(139,114,255,.28);border:1px solid rgba(201,184,255,.4);color:#e7defc;margin-bottom:10px}
+  .caption h2{font-size:21px;color:#fff;line-height:1.15}
+  .caption p{font-size:13px;color:#d9d3e8;margin-top:8px;line-height:1.5;max-width:34ch}
+
+  .navrow{position:absolute;left:0;right:0;bottom:0;z-index:15;display:flex;justify-content:space-between;align-items:center;padding:0 14px 14px}
+  .navbtn{width:44px;height:44px;border-radius:50%;background:rgba(12,10,16,.55);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.16);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none}
+  .navbtn:disabled{opacity:.28;cursor:default}
+  .navbtn.primary{background:var(--purple);border-color:var(--purple)}
+
+  /* AR scan overlay (stop 4) */
+  .ar-frame{position:absolute;inset:16px;z-index:6;pointer-events:none;border-radius:14px;opacity:0;transition:opacity .25s}
+  .ar-frame.on{opacity:1}
+  .ar-frame::after{
+    content:"";position:absolute;inset:0;border-radius:14px;
+    background:
+      linear-gradient(var(--purple2),var(--purple2)) top left / 26px 3px no-repeat,
+      linear-gradient(var(--purple2),var(--purple2)) top left / 3px 26px no-repeat,
+      linear-gradient(var(--purple2),var(--purple2)) top right / 26px 3px no-repeat,
+      linear-gradient(var(--purple2),var(--purple2)) top right / 3px 26px no-repeat,
+      linear-gradient(var(--purple2),var(--purple2)) bottom left / 26px 3px no-repeat,
+      linear-gradient(var(--purple2),var(--purple2)) bottom left / 3px 26px no-repeat,
+      linear-gradient(var(--purple2),var(--purple2)) bottom right / 26px 3px no-repeat,
+      linear-gradient(var(--purple2),var(--purple2)) bottom right / 3px 26px no-repeat;
+    animation:arpulse 1.4s ease-in-out infinite;
+  }
+  @keyframes arpulse{0%,100%{opacity:.5}50%{opacity:1}}
+  .scan-chip{position:absolute;top:52px;left:20px;z-index:7;background:rgba(20,16,24,.8);color:#7CFFB2;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;padding:5px 10px;border-radius:6px;opacity:0;transition:opacity .25s}
+  .scan-chip.on{opacity:1}
+
+  .tap-hint{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;
+    background:rgba(12,10,16,.6);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.2);
+    color:#fff;padding:14px 22px;border-radius:30px;font-size:13px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:8px;animation:pulseScale 1.8s ease-in-out infinite;
+  }
+  @keyframes pulseScale{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.05)}}
+
+  .chip-row{position:absolute;left:0;right:0;bottom:78px;z-index:12;display:flex;justify-content:center;padding:0 20px}
+  .ask-chip{
+    background:var(--purple);color:#fff;border:none;font-size:12.5px;font-weight:600;
+    padding:11px 18px;border-radius:24px;cursor:pointer;box-shadow:0 10px 24px rgba(108,76,241,.4);
+    display:flex;align-items:center;gap:6px;opacity:0;transform:translateY(8px);transition:all .35s;
+  }
+  .ask-chip.show{opacity:1;transform:translateY(0)}
+
+  .scrim-top{position:absolute;top:0;left:0;right:0;height:120px;background:linear-gradient(180deg,rgba(10,8,14,.6),transparent);z-index:5;pointer-events:none}
+
+  .intro{padding:34px 26px;text-align:center;color:#fff;height:100%;display:flex;flex-direction:column;justify-content:center;background:radial-gradient(circle at 50% 20%, #241a3d, #100d16 70%)}
+  .intro .eyebrow{font-size:10.5px;letter-spacing:.14em;color:#c9b8ff;text-transform:uppercase}
+  .intro h1{font-size:30px;color:#fff;margin-top:12px;line-height:1.08}
+  .intro h1 em{color:#c9b8ff;font-style:italic}
+  .intro p{color:#cfc7e3;font-size:13.5px;margin-top:14px;line-height:1.6}
+  .intro button{margin-top:26px;background:var(--purple);color:#fff;border:none;padding:14px 26px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 14px 28px rgba(108,76,241,.4)}
+
+  .done-screen{padding:34px 26px;text-align:center;color:#fff;height:100%;display:flex;flex-direction:column;justify-content:center;background:radial-gradient(circle at 50% 20%, #241a3d, #100d16 70%)}
+  .done-screen h1{font-size:26px;color:#fff}
+  .done-screen p{color:#cfc7e3;font-size:13.5px;margin-top:12px;line-height:1.6}
+  .done-screen button{margin-top:22px;background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;padding:12px 22px;border-radius:14px;font-size:13px;font-weight:600;cursor:pointer}
+
+  /* live camera */
+  .stage video.live-cam{transform:scaleX(1)}
+  .cam-note{position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:9;background:rgba(20,16,24,.72);color:#e7defc;font-size:11px;padding:6px 12px;border-radius:20px;white-space:nowrap}
+  .cam-topbar{position:absolute;top:52px;left:20px;z-index:9;background:rgba(20,16,24,.7);color:#ff5b5b;font-size:10px;letter-spacing:.08em;padding:5px 10px;border-radius:6px;display:flex;align-items:center;gap:6px}
+  .cam-dot{width:6px;height:6px;border-radius:50%;background:#ff5b5b;animation:camBlink 1.2s ease-in-out infinite}
+  @keyframes camBlink{0%,100%{opacity:1}50%{opacity:.25}}
+
+  /* AR arrow (stop 3, live) */
+  .ar-arrow-wrap{position:absolute;left:0;right:0;top:38%;display:flex;justify-content:center;z-index:8;pointer-events:none}
+  .ar-arrow{
+    width:64px;height:64px;filter:drop-shadow(0 0 18px rgba(139,114,255,.85));
+    animation:arrowBob 1.3s ease-in-out infinite;
+  }
+  @keyframes arrowBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+  .ar-rings{position:absolute;left:0;right:0;top:38%;display:flex;justify-content:center;z-index:7;pointer-events:none}
+  .ar-rings span{
+    position:absolute;width:90px;height:90px;border:1.5px solid rgba(201,184,255,.5);border-radius:50%;
+    animation:ringPulse 2.2s ease-out infinite;
+  }
+  .ar-rings span:nth-child(2){animation-delay:.7s}
+  .ar-rings span:nth-child(3){animation-delay:1.4s}
+  @keyframes ringPulse{0%{transform:scale(.4);opacity:.9}100%{transform:scale(1.6);opacity:0}}
+
+  /* shutter */
+  .shutter-row{position:absolute;left:0;right:0;bottom:88px;z-index:12;display:flex;justify-content:center}
+  .shutter{
+    width:66px;height:66px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.35);
+    cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.4);
+  }
+  .shutter:active{transform:scale(.92)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const {useState, useRef, useEffect} = React;
+
+const STOPS = [
+  {num:1, tag:"HOOK", title:"Arrival", img:"assets/stop1.jpg",
+    body:"The museum's own entrance sign already uses a bold yellow directional arrow. That's the visual seed for the app's AR wayfinding arrow."},
+  {num:2, tag:"NO APP TO INSTALL", title:"The ticket, and the brochure", img:"assets/stop2.jpg",
+    body:"She buys her ticket, and the counter hands her a printed brochure. The Genie's entry point is a QR code printed inside it, not a separate ticketing system."},
+  {num:3, tag:"AR-GUIDED", title:"Follow the arrow", img:"assets/stop3.jpg", isArrow:true,
+    body:"Instead of a paragraph of directions, the phone's live camera shows a floating AR arrow pointing down the corridor. She never has to read a map."},
+  {num:4, tag:"THE PAYOFF BEAT", title:"Match found", img:"assets/stop4.jpg",
+    body:"She raises the phone at the work. A scanning animation resolves into a real recognition moment, then the Genie speaks about this specific sculpture, in the voice she picked.",
+    isRecognition:true,
+    clip1:"videos/stop4-ar-phone-regenerated.mp4",
+    clip2:"videos/stop4-continued-design-question.mp4",
+    askLabel:"Ask how he started designing it"},
+  {num:5, tag:"OPT-IN SCORING", title:"The game", img:"assets/stop5.jpg",
+    body:"An optional quiz or timed riddle ties back to whatever's in front of her, never forced, always tied to the actual piece."},
+  {num:6, tag:"PAYOFF", title:"She keeps walking", img:"assets/stop6.jpg",
+    body:"Recap in hand, she walks into the next gallery on her own, phone down at her side. Same building as the opening photo, a visibly different visitor."},
+];
+
+function useCamera(active){
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const [status, setStatus] = useState("idle"); // idle|starting|ready|error
+
+  useEffect(()=>{
+    let cancelled = false;
+    if(active){
+      setStatus("starting");
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+        setStatus("error");
+      } else {
+        navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false})
+          .then(stream=>{
+            if(cancelled){ stream.getTracks().forEach(t=>t.stop()); return; }
+            streamRef.current = stream;
+            if(videoRef.current){ videoRef.current.srcObject = stream; }
+            setStatus("ready");
+          })
+          .catch(()=>{ if(!cancelled) setStatus("error"); });
+      }
+    }
+    return ()=>{
+      cancelled = true;
+      if(streamRef.current){
+        streamRef.current.getTracks().forEach(t=>t.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [active]);
+
+  return {videoRef, status};
+}
+
+function capturePhoto(videoEl){
+  try{
+    const canvas = document.createElement("canvas");
+    canvas.width = videoEl.videoWidth || 720;
+    canvas.height = videoEl.videoHeight || 1280;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.85);
+  }catch(e){ return null; }
+}
+
+function ArrowStage({stop}){
+  const {videoRef, status} = useCamera(true);
+  const isLive = status==="ready";
+  return (
+    <div className="stage">
+      {isLive ? (
+        <video ref={videoRef} autoPlay playsInline muted className="live-cam" />
+      ) : (
+        <img src={stop.img} alt={stop.title} />
+      )}
+      <div className="stage-fade" />
+      {isLive && (
+        <React.Fragment>
+          <div className="cam-topbar mono">
+            <span className="cam-dot" /> LIVE
+          </div>
+          <div className="ar-rings"><span/><span/><span/></div>
+          <div className="ar-arrow-wrap">
+            <svg className="ar-arrow" viewBox="0 0 64 64" fill="none">
+              <path d="M32 6 L54 30 H41 V58 H23 V30 H10 Z" fill="#8b72ff" stroke="#fff" strokeWidth="1.5" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </React.Fragment>
+      )}
+      {status==="starting" && <div className="cam-note">Turning on the camera…</div>}
+    </div>
+  );
+}
+
+function IOSChrome(){
+  const [time, setTime] = useState(()=> new Date());
+  useEffect(()=>{
+    const t = setInterval(()=> setTime(new Date()), 30000);
+    return ()=> clearInterval(t);
+  }, []);
+  const hh = time.getHours() % 12 || 12;
+  const mm = String(time.getMinutes()).padStart(2,"0");
+  return (
+    <React.Fragment>
+      <div className="ios-status mono">
+        <span>{hh}:{mm}</span>
+        <div className="icons">
+          <span>📶</span><span>🔋</span>
+        </div>
+      </div>
+      <div className="notch" />
+      <div className="home-indicator" />
+    </React.Fragment>
+  );
+}
+
+function ProgressDots({idx}){
+  return (
+    <div className="progress">
+      {STOPS.map((s,i)=>(
+        <span key={i} className={i===idx?"active":(i<idx?"done":"")} />
+      ))}
+    </div>
+  );
+}
+
+function RecognitionStage({stop, onAdvanceReady}){
+  // phases: camera -> scanning -> clip1 -> chip -> clip2 -> settled
+  const [phase, setPhase] = useState("camera");
+  const [shot, setShot] = useState(null);
+  const {videoRef, status} = useCamera(phase==="camera");
+  const isLive = status==="ready";
+  const v1 = useRef(null);
+  const v2 = useRef(null);
+
+  function takePhoto(){
+    // real capture from the live feed: show the fresh frame, then scan it
+    setShot(capturePhoto(videoRef.current));
+    setPhase("scanning");
+    setTimeout(()=> setPhase("clip1"), 900);
+  }
+
+  function simulateScan(){
+    // no camera available: the reference photo already shows the resolved
+    // match card, so skip straight to the recognition beat itself
+    setPhase("clip1");
+  }
+
+  useEffect(()=>{
+    if(phase==="clip1" && v1.current){
+      v1.current.currentTime = 0;
+      v1.current.play().catch(()=>{});
+    }
+    if(phase==="clip2" && v2.current){
+      v2.current.currentTime = 0;
+      v2.current.play().catch(()=>{});
+    }
+  }, [phase]);
+
+  return (
+    <div className="stage">
+      {phase==="camera" ? (
+        isLive ? (
+          <video ref={videoRef} autoPlay playsInline muted className="live-cam" />
+        ) : (
+          <img src={stop.img} alt={stop.title} />
+        )
+      ) : phase==="scanning" ? (
+        <img src={shot} alt="captured" />
+      ) : phase==="clip1" || phase==="chip" ? (
+        <video ref={v1} src={stop.clip1} playsInline muted={false}
+          onEnded={()=> setPhase("chip")} />
+      ) : (
+        <video ref={v2} src={stop.clip2} playsInline muted={false}
+          onEnded={()=> { setPhase("settled"); onAdvanceReady(); }} />
+      )}
+
+      {phase==="scanning" && (
+        <React.Fragment>
+          <div className="ar-frame on" />
+          <div className="scan-chip on">SCANNING…</div>
+        </React.Fragment>
+      )}
+
+      {phase==="camera" && isLive && (
+        <React.Fragment>
+          <div className="cam-topbar mono"><span className="cam-dot" /> LIVE</div>
+          <div className="ar-frame on" />
+          <div className="shutter-row">
+            <div className="shutter" onClick={takePhoto} />
+          </div>
+        </React.Fragment>
+      )}
+
+      {phase==="camera" && status==="starting" && (
+        <div className="cam-note">Turning on the camera…</div>
+      )}
+
+      {phase==="camera" && !isLive && status!=="starting" && (
+        <div className="tap-hint" onClick={simulateScan}>📷 Tap to scan</div>
+      )}
+
+      {phase==="chip" && (
+        <div className="chip-row">
+          <button className="ask-chip show" onClick={()=> setPhase("clip2")}>
+            💬 {stop.askLabel}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App(){
+  const [started, setStarted] = useState(false);
+  const [idx, setIdx] = useState(0);
+  const [recognitionDone, setRecognitionDone] = useState(false);
+  const stop = STOPS[idx];
+  const isRecognitionStop = !!stop.isRecognition;
+  const canGoNext = idx < STOPS.length - 1;
+  const canGoPrev = idx > 0;
+  const nextBlocked = isRecognitionStop && !recognitionDone;
+
+  function goNext(){ if(canGoNext && !nextBlocked){ setIdx(idx+1); } }
+  function goPrev(){ if(canGoPrev){ setIdx(idx-1); } }
+
+  if(!started){
+    return (
+      <div className="page">
+        <div className="phone">
+          <IOSChrome />
+          <div className="screen">
+            <div className="intro">
+              <div className="eyebrow">Tel Aviv Museum of Art</div>
+              <h1>Let the art <em>talk back.</em></h1>
+              <p>An interactive walkthrough of The Genie, six real stops, one continuous visit. Tap through as if you were Noa, first time at the museum.</p>
+              <button onClick={()=> setStarted(true)}>Start the visit →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if(idx >= STOPS.length){
+    return null;
+  }
+
+  return (
+    <div className="page">
+      <div className="phone">
+        <IOSChrome />
+        <div className="screen">
+          {isRecognitionStop ? (
+            <RecognitionStage stop={stop} onAdvanceReady={()=> setRecognitionDone(true)} />
+          ) : stop.isArrow ? (
+            <ArrowStage stop={stop} />
+          ) : (
+            <div className="stage">
+              <img src={stop.img} alt={stop.title} />
+              <div className="stage-fade" />
+            </div>
+          )}
+
+          <div className="scrim-top" />
+          <div className="topbar">
+            <div className="stopchip mono">STOP <b>{stop.num}</b> / {STOPS.length}</div>
+            <ProgressDots idx={idx} />
+          </div>
+
+          <div className="caption">
+            <span className="tag mono">{stop.tag}</span>
+            <h2>{stop.title}</h2>
+            <p>{stop.body}</p>
+          </div>
+
+          <div className="navrow">
+            <div className="navbtn" onClick={goPrev} style={{visibility: canGoPrev ? "visible":"hidden"}}>‹</div>
+            <div
+              className={"navbtn primary" + (nextBlocked ? "" : "")}
+              onClick={goNext}
+              style={{opacity: nextBlocked ? .35 : 1, cursor: nextBlocked ? "default":"pointer"}}
+            >
+              {canGoNext ? "›" : "✓"}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

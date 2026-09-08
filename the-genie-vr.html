@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Genie — VR Journey</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{ --purple:#6c4cf1; --cream:#f7f3eb; --ink:#171717; }
+  *{box-sizing:border-box}
+  body{margin:0;background:#0c0a10;color:#fff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  #hud{position:fixed;top:0;left:0;right:0;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;z-index:10;pointer-events:none}
+  #hud .brand{font-weight:800;letter-spacing:-.03em;pointer-events:auto}
+  #hud .brand span{color:#a78bfa}
+  #caption{position:fixed;left:0;right:0;bottom:26px;text-align:center;z-index:10;pointer-events:none}
+  #caption b{display:block;font-size:15px;font-weight:700;margin-bottom:4px}
+  #caption span{font-size:12px;color:#c9c3d9}
+  #vrBtn{pointer-events:auto;background:var(--purple);color:#fff;border:0;border-radius:14px;padding:12px 22px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 12px 30px rgba(108,76,241,.4)}
+  #vrBtn:disabled{background:#3a3450;cursor:default;box-shadow:none}
+  #hint{position:fixed;top:64px;left:0;right:0;text-align:center;font-size:12px;color:#a79cc7;z-index:10;pointer-events:none;letter-spacing:.04em;text-transform:uppercase}
+  canvas{display:block}
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div class="brand">The <span>Genie</span> · VR</div>
+  <button id="vrBtn" disabled>Checking headset…</button>
+</div>
+<div id="hint">Drag to look around · this is the 3D preview if no headset is connected</div>
+<div id="caption">
+  <b id="capTitle">Follow the arrow.</b>
+  <span id="capSub">Find a work that feels like stepping into a dream.</span>
+</div>
+
+<script>
+// ---------- Basic three.js scene: a museum corridor, a floating 3D arrow, an anchor sculpture ----------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0c0a10);
+scene.fog = new THREE.Fog(0x0c0a10, 6, 22);
+
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 100);
+camera.position.set(0, 1.6, 4);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+// Lighting
+scene.add(new THREE.HemisphereLight(0x8877ff, 0x0c0a10, 0.6));
+const key = new THREE.DirectionalLight(0xffffff, 0.8);
+key.position.set(2, 5, 3);
+scene.add(key);
+
+// Corridor: floor + two walls, receding into the distance (matches the real angled-corridor photos)
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1620, roughness: 0.9 });
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(6, 30), floorMat);
+floor.rotation.x = -Math.PI/2;
+floor.position.set(0, 0, -10);
+scene.add(floor);
+
+const wallMat = new THREE.MeshStandardMaterial({ color: 0x241f2e, roughness: 1 });
+const wallL = new THREE.Mesh(new THREE.PlaneGeometry(30, 5), wallMat);
+wallL.position.set(-3, 2.5, -10);
+wallL.rotation.y = Math.PI/2;
+scene.add(wallL);
+const wallR = wallL.clone();
+wallR.position.set(3, 2.5, -10);
+wallR.rotation.y = -Math.PI/2;
+scene.add(wallR);
+
+const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(6, 30), wallMat);
+ceiling.rotation.x = Math.PI/2;
+ceiling.position.set(0, 5, -10);
+scene.add(ceiling);
+
+// Anchor artwork placeholder, a dark seated-form sculpture on a plinth, matching the real IMG_1578 piece
+const plinth = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.9, 0.9, 0.35, 32),
+  new THREE.MeshStandardMaterial({ color: 0x3a5a78, roughness: 0.6 })
+);
+plinth.position.set(0, 0.175, -16);
+scene.add(plinth);
+
+const sculpture = new THREE.Mesh(
+  new THREE.TorusKnotGeometry(0.6, 0.22, 120, 16, 2, 3),
+  new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.15, metalness: 0.4 })
+);
+sculpture.position.set(0, 1.1, -16);
+scene.add(sculpture);
+
+// Alcove wash of blue behind the sculpture, matching the real photo's blue alcove
+const alcove = new THREE.Mesh(new THREE.PlaneGeometry(4, 4.5), new THREE.MeshBasicMaterial({ color: 0x2456a0 }));
+alcove.position.set(0, 2.2, -18.5);
+scene.add(alcove);
+
+// Floating 3D directional arrow (cone + shaft), the VR analogue of the phone-screen AR arrow
+const arrowGroup = new THREE.Group();
+const shaft = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.06, 0.06, 0.6, 16),
+  new THREE.MeshStandardMaterial({ color: 0x6c4cf1, emissive: 0x2d1f66, emissiveIntensity: 0.6 })
+);
+shaft.position.y = -0.1;
+arrowGroup.add(shaft);
+const head = new THREE.Mesh(
+  new THREE.ConeGeometry(0.16, 0.32, 20),
+  new THREE.MeshStandardMaterial({ color: 0x6c4cf1, emissive: 0x2d1f66, emissiveIntensity: 0.6 })
+);
+head.position.y = 0.32;
+arrowGroup.add(head);
+arrowGroup.position.set(0, 1.7, -3);
+arrowGroup.rotation.z = Math.PI; // point forward/down the corridor initially
+scene.add(arrowGroup);
+
+const arrowLight = new THREE.PointLight(0x8b72ff, 1.2, 4);
+arrowLight.position.copy(arrowGroup.position);
+scene.add(arrowLight);
+
+// ---------- Non-VR fallback: drag-to-look camera ----------
+let isDragging = false, lastX = 0, lastY = 0, yaw = 0, pitch = 0;
+renderer.domElement.addEventListener('pointerdown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
+window.addEventListener('pointerup', () => isDragging = false);
+window.addEventListener('pointermove', e => {
+  if(!isDragging || renderer.xr.isPresenting) return;
+  yaw -= (e.clientX - lastX) * 0.005;
+  pitch -= (e.clientY - lastY) * 0.005;
+  pitch = Math.max(-0.6, Math.min(0.6, pitch));
+  lastX = e.clientX; lastY = e.clientY;
+});
+
+// ---------- WebXR session wiring ----------
+const vrBtn = document.getElementById('vrBtn');
+if ('xr' in navigator) {
+  navigator.xr.isSessionSupported('immersive-vr').then(supported => {
+    vrBtn.disabled = !supported;
+    vrBtn.textContent = supported ? 'Enter VR' : 'No headset detected';
+  }).catch(() => { vrBtn.textContent = 'VR not available here'; });
+} else {
+  vrBtn.textContent = 'VR not supported in this browser';
+}
+
+let xrSession = null;
+vrBtn.addEventListener('click', async () => {
+  if (xrSession) { xrSession.end(); return; }
+  try {
+    const session = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor'] });
+    xrSession = session;
+    await renderer.xr.setSession(session);
+    vrBtn.textContent = 'Exit VR';
+    session.addEventListener('end', () => { xrSession = null; vrBtn.textContent = 'Enter VR'; });
+  } catch (err) {
+    console.error('WebXR session request failed', err);
+    vrBtn.textContent = 'Could not start VR (' + (err && err.name || 'error') + ')';
+  }
+});
+
+// ---------- Render loop ----------
+let t = 0;
+renderer.setAnimationLoop(() => {
+  t += 0.016;
+  arrowGroup.position.y = 1.7 + Math.sin(t * 1.6) * 0.08;
+  arrowGroup.rotation.y = Math.sin(t * 0.8) * 0.15;
+  sculpture.rotation.y += 0.003;
+
+  if (!renderer.xr.isPresenting) {
+    camera.rotation.set(pitch, yaw, 0, 'YXZ');
+  }
+  renderer.render(scene, camera);
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
