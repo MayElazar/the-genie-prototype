@@ -580,6 +580,9 @@ function onArrivedAtFirstArt(){
   stopARGuideVideo();
   document.getElementById('scanReticle').style.display='block';
   document.getElementById('chatTakePhotoRow').style.display='flex';
+  const preview=document.getElementById('cameraPreview');
+  preview.src=(journey && stops[journey][stopIndex].img)||SCULPTURE_PHOTO;
+  document.getElementById('cameraBox').classList.add('has-photo');
   if(journey){
     const st=stops[journey][stopIndex];
     addPhotoBubble(st.img||SCULPTURE_PHOTO);
